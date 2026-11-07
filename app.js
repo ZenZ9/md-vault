@@ -324,7 +324,10 @@ async function loadFromFileList(list) {
     if (!TEXT_RE.test(f.name)) return;
     entries.push({ parts: parts, file: f, rootName: rootName });
   });
-  if (!entries.length) return setStatus('no markdown files in that folder');
+  if (!entries.length) {
+    els.editor.disabled = wasDisabled;
+    return setStatus('no markdown files in that folder');
+  }
 
   var rootName = entries[0].rootName || 'folder';
   state.readOnly = true;
@@ -618,9 +621,17 @@ async function newNote() {
   var name = cleanName(TEXT_RE.test(raw) ? raw : raw + '.md');
   if (!name) return setStatus('invalid name');
 
+  var wasDisabled = els.editor.disabled;
+  els.editor.disabled = true;
+  if (!(await flushSave())) {
+    els.editor.disabled = wasDisabled;
+    return;
+  }
+
   try {
     try {
       await dir.handle.getFileHandle(name);
+      els.editor.disabled = wasDisabled;
       return setStatus('note already exists: /' + dir.path + name);
     } catch (lookupError) {
       if (lookupError.name !== 'NotFoundError') throw lookupError;
@@ -628,8 +639,10 @@ async function newNote() {
     var handle = await dir.handle.getFileHandle(name, { create: true });
     await rescan();
     await openFile({ kind: 'file', name: name, path: dir.path + name, handle: handle });
+    if (!state.file || state.file.path !== dir.path + name) els.editor.disabled = wasDisabled;
     els.editor.focus();
   } catch (err) {
+    els.editor.disabled = wasDisabled;
     setStatus('create failed: ' + err.message);
   }
 }
