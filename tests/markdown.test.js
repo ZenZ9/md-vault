@@ -13,6 +13,7 @@ assert.match(render('[safe](https://example.com)'), /href="https:\/\/example\.co
 assert.match(render('[mail](mailto:test@example.com)'), /href="mailto:test@example.com"/);
 assert.doesNotMatch(render('[bad](javascript:alert(1))'), /href="javascript:/i);
 assert.doesNotMatch(render('[bad](data:text/html,boom)'), /href="data:/i);
+assert.doesNotMatch(render('[bad](//evil.example/path)'), /href="\\/\\/evil/i);
 assert.doesNotMatch(render('![bad](javascript:alert(1))'), /src="javascript:/i);
 assert.match(render('[[Notes/Inbox]]'), /data-wikilink="Notes\/Inbox"/);
 
