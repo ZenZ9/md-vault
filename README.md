@@ -10,7 +10,7 @@
 ## วิธีรัน
 
 ```bash
-cd Coding/md-vault
+cd md-vault
 python3 -m http.server 8000
 # แล้วเปิด http://localhost:8000
 ```
