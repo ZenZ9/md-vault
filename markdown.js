@@ -9,6 +9,18 @@
       .replace(/"/g, '&quot;');
   }
 
+  function safeUrl(value, image) {
+    var url = String(value || '').trim();
+    if (!url) return false;
+    var compact = url.replace(/[\x00-\x20\x7f]/g, '').toLowerCase();
+    if (/^https?:/.test(compact)) return true;
+    if (!image && /^mailto:/.test(compact)) return true;
+    if (!image && compact.charAt(0) === '#') return true;
+    if (/^[a-z][a-z0-9+.-]*:/.test(compact)) return false;
+    if (compact.indexOf('//') === 0 || compact.indexOf('\\\\') === 0) return false;
+    return true; // vault-relative path
+  }
+
   function inline(s) {
     // pull inline code out first so its content is never parsed as markup
     var codes = [];
@@ -27,10 +39,12 @@
     });
 
     out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, function (m, alt, src) {
-      return '<img alt="' + alt + '" src="' + src + '">';
+      return safeUrl(src, true) ? '<img alt="' + alt + '" src="' + src + '">' : alt;
     });
     out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (m, text, href) {
-      return '<a href="' + href + '" target="_blank" rel="noreferrer">' + text + '</a>';
+      return safeUrl(href, false)
+        ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + text + '</a>'
+        : text;
     });
     out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     out = out.replace(/__([^_]+)__/g, '<strong>$1</strong>');

@@ -35,6 +35,8 @@ var state = {
   query: '',
   target: '',
   saveTimer: null,
+  savePromise: null,
+  revision: 0,
   renderTimer: null,
   savedHandle: null,
   completer: { open: false, items: [], index: 0, start: 0 },
@@ -78,7 +80,9 @@ function markBrokenLinks() {
 function clearEditor() {
   state.file = null;
   state.dirty = false;
+  state.revision++;
   els.editor.value = '';
+  els.editor.readOnly = state.readOnly;
   els.editor.disabled = true;
   els.preview.innerHTML = '';
   els.filePath.textContent = 'No file selected';
@@ -216,18 +220,30 @@ function sortNodes(nodes) {
   });
 }
 
+function normalizeWikiPath(value) {
+  var path = String(value || '').trim().replace(/\\/g, '/');
+  path = path.replace(/^(\.\/)+/, '').replace(/^\/+/, '').replace(/\/+/g, '/');
+  return path.replace(TEXT_RE, '');
+}
+
 function indexNotes(nodes, map) {
   nodes.forEach(function (n) {
     if (n.kind === 'dir' && n.children) indexNotes(n.children, map);
     else if (n.kind === 'file') {
-      var base = n.name.toLowerCase().replace(TEXT_RE, '');
-      if (!map.has(base)) map.set(base, n);
+      var key = normalizeWikiPath(n.path);
+      if (!map.has(key)) map.set(key, n);
     }
   });
   return map;
 }
 
 async function loadVault(handle) {
+  var wasDisabled = els.editor.disabled;
+  els.editor.disabled = true;
+  if (!(await flushSave())) {
+    els.editor.disabled = wasDisabled;
+    throw new Error('cannot switch vault: current note was not saved');
+  }
   state.readOnly = false;
   state.file = null;
   state.dirty = false;
@@ -250,7 +266,10 @@ async function loadVault(handle) {
 async function rescan() {
   state.root.children = await scanDir(state.root.handle, '');
   state.byName = indexNotes(state.root.children, new Map());
-  if (state.file && !findPath(state.root.children, state.file.path)) clearEditor();
+  if (state.file && !findPath(state.root.children, state.file.path)) {
+    if (state.dirty) setStatus('active note is missing; unsaved text retained');
+    else clearEditor();
+  }
   renderTree();
 }
 
@@ -284,13 +303,20 @@ function findDir(path) {
 function resolveLink(target) {
   var name = String(target || '').replace(/#.*$/, '').trim();
   if (!name) return null;
-  var base = name.split('/').pop().toLowerCase().replace(TEXT_RE, '');
-  return state.byName.get(base) || null;
+  var path = normalizeWikiPath(name);
+  return state.byName.get(path) || null;
 }
 
 /* ---------- fallback: <input webkitdirectory>, read-only ---------- */
 
-function loadFromFileList(list) {
+async function loadFromFileList(list) {
+  var wasDisabled = els.editor.disabled;
+  els.editor.disabled = true;
+  if (!(await flushSave())) {
+    els.editor.disabled = wasDisabled;
+    setStatus('cannot switch folder: current note was not saved');
+    return;
+  }
   var entries = [];
   Array.prototype.forEach.call(list, function (f) {
     var rel = f.webkitRelativePath || f.name;
@@ -300,7 +326,10 @@ function loadFromFileList(list) {
     if (!TEXT_RE.test(f.name)) return;
     entries.push({ parts: parts, file: f, rootName: rootName });
   });
-  if (!entries.length) return setStatus('no markdown files in that folder');
+  if (!entries.length) {
+    els.editor.disabled = wasDisabled;
+    return setStatus('no markdown files in that folder');
+  }
 
   var rootName = entries[0].rootName || 'folder';
   state.readOnly = true;
@@ -449,7 +478,12 @@ function fileRow(node, showDir) {
 
 async function openFile(node) {
   if (state.file && state.file.path === node.path) return;
-  await flushSave();
+  var wasDisabled = els.editor.disabled;
+  els.editor.disabled = true;
+  if (!(await flushSave())) {
+    els.editor.disabled = wasDisabled;
+    return;
+  }
 
   try {
     var text;
@@ -462,6 +496,7 @@ async function openFile(node) {
     state.file = node;
     state.dirty = false;
     els.editor.value = text;
+    els.editor.readOnly = state.readOnly;
     els.editor.disabled = false;
     els.filePath.textContent = node.path;
     setStatus(state.readOnly ? 'read-only' : '');
@@ -470,39 +505,71 @@ async function openFile(node) {
     hideCompletions();
     setDrawer(false); // on phones the file list is a drawer
   } catch (err) {
+    els.editor.disabled = wasDisabled;
     setStatus('open failed: ' + err.message);
   }
 }
 
 async function save() {
   clearTimeout(state.saveTimer);
-  if (!state.file || !state.dirty) return;
+  if (!state.file || !state.dirty) return true;
   if (state.readOnly || !state.file.handle) {
     setStatus('read-only: cannot save');
-    return;
+    return false;
   }
+
+  if (state.savePromise) {
+    var pendingResult = await state.savePromise;
+    if (!pendingResult) return false;
+    return state.dirty ? save() : true;
+  }
+
   var target = state.file;
-  var text = els.editor.value;
-  try {
-    setStatus('saving…');
-    var writable = await target.handle.createWritable();
-    await writable.write(text);
-    await writable.close();
-    if (state.file === target) {
-      state.dirty = false;
-      setStatus('saved');
-      setTimeout(function () {
-        if (!state.dirty && els.status.textContent === 'saved') setStatus('');
-      }, 1200);
+  var task = (async function () {
+    while (state.file === target && state.dirty) {
+      var revision = state.revision;
+      var text = els.editor.value;
+      try {
+        setStatus('saving…');
+        var writable = await target.handle.createWritable();
+        try {
+          await writable.write(text);
+          await writable.close();
+        } catch (writeError) {
+          if (typeof writable.abort === 'function') {
+            try { await writable.abort(); } catch (abortError) { /* preserve write error */ }
+          }
+          throw writeError;
+        }
+        if (state.file !== target) return false;
+        if (state.revision === revision && els.editor.value === text) {
+          state.dirty = false;
+          setStatus('saved');
+          setTimeout(function () {
+            if (!state.dirty && els.status.textContent === 'saved') setStatus('');
+          }, 1200);
+        }
+        // If the user edited during the write, loop and persist the newer revision.
+      } catch (err) {
+        setStatus('save failed: ' + err.message);
+        return false;
+      }
     }
-  } catch (err) {
-    setStatus('save failed: ' + err.message);
+    return !state.dirty;
+  })();
+
+  state.savePromise = task;
+  try {
+    return await task;
+  } finally {
+    if (state.savePromise === task) state.savePromise = null;
   }
 }
 
 async function flushSave() {
   clearTimeout(state.saveTimer);
-  if (state.dirty) await save();
+  if (!state.dirty) return true;
+  return save();
 }
 
 /* ---------- actions ---------- */
@@ -556,12 +623,28 @@ async function newNote() {
   var name = cleanName(TEXT_RE.test(raw) ? raw : raw + '.md');
   if (!name) return setStatus('invalid name');
 
+  var wasDisabled = els.editor.disabled;
+  els.editor.disabled = true;
+  if (!(await flushSave())) {
+    els.editor.disabled = wasDisabled;
+    return;
+  }
+
   try {
+    try {
+      await dir.handle.getFileHandle(name);
+      els.editor.disabled = wasDisabled;
+      return setStatus('note already exists: /' + dir.path + name);
+    } catch (lookupError) {
+      if (lookupError.name !== 'NotFoundError') throw lookupError;
+    }
     var handle = await dir.handle.getFileHandle(name, { create: true });
     await rescan();
     await openFile({ kind: 'file', name: name, path: dir.path + name, handle: handle });
+    if (!state.file || state.file.path !== dir.path + name) els.editor.disabled = wasDisabled;
     els.editor.focus();
   } catch (err) {
+    els.editor.disabled = wasDisabled;
     setStatus('create failed: ' + err.message);
   }
 }
@@ -579,6 +662,12 @@ async function newFolder() {
   if (!name) return setStatus('invalid name');
 
   try {
+    try {
+      await dir.handle.getDirectoryHandle(name);
+      return setStatus('folder already exists: /' + dir.path + name + '/');
+    } catch (lookupError) {
+      if (lookupError.name !== 'NotFoundError') throw lookupError;
+    }
     await dir.handle.getDirectoryHandle(name, { create: true });
     var path = dir.path + name + '/';
     state.collapsed.delete(path);
@@ -611,18 +700,19 @@ function updateCompletions() {
 
   var q = ctx.query.trim().toLowerCase();
   var candidates = [];
-  state.byName.forEach(function (node, base) {
-    if (!q || base.indexOf(q) !== -1) {
-      // keep the real filename casing for what gets inserted
-      candidates.push({ base: base, name: node.name.replace(/\.[^.]+$/, ''), node: node });
+  flatFiles(state.root ? state.root.children : [], []).forEach(function (node) {
+    var path = normalizeWikiPath(node.path);
+    var displayPath = node.path.replace(TEXT_RE, '');
+    if (!q || path.toLowerCase().indexOf(q) !== -1) {
+      candidates.push({ base: path, name: displayPath, node: node });
     }
   });
   if (!candidates.length) return hideCompletions();
 
   candidates.sort(function (a, b) {
-    var aStarts = a.base.indexOf(q) === 0 ? 0 : 1;
-    var bStarts = b.base.indexOf(q) === 0 ? 0 : 1;
-    return aStarts - bStarts || a.base.localeCompare(b.base);
+    var aStarts = a.base.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+    var bStarts = b.base.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+    return aStarts - bStarts || a.base.localeCompare(b.base, undefined, { sensitivity: 'base' });
   });
 
   state.completer = { open: true, items: candidates.slice(0, 8), index: 0, start: ctx.start };
@@ -838,6 +928,7 @@ els.editor.addEventListener('input', function () {
   updateCompletions(); // opens or hides the [[ note picker as you type
   if (!state.file) return;
   state.dirty = true;
+  state.revision++;
   setStatus(state.readOnly ? 'read-only' : 'unsaved');
   clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(save, 500);

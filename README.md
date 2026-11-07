@@ -34,12 +34,12 @@ python3 -m http.server 8000
 
 | เขียน | ผล |
 |---|---|
-| `[[ชื่อโน้ต]]` | คลิกใน Preview แล้วเปิดโน้ตนั้น (จับคู่ด้วยชื่อไฟล์ ไม่สนตัวพิมพ์/โฟลเดอร์) |
-| `[[ชื่อโน้ต\|ข้อความ]]` | แสดงข้อความที่กำหนด แต่เปิดโน้ตเดียวกัน |
+| `[[Notes/Inbox]]` | คลิกใน Preview แล้วเปิด `Notes/Inbox.md` (path เริ่มจาก root ของ Vault และตรงตามตัวพิมพ์เล็ก/ใหญ่) |
+| `[[Notes/Inbox\|ข้อความ]]` | แสดงข้อความที่กำหนด แต่เปิดโน้ตตาม path เดิม |
 | `[[ไม่มีไฟล์]]` | สีแดงเส้นประ + แจ้งเตือนสถานะ |
 | `[ข้อความ](sub/other.md)` | ลิงก์ Markdown ปกติก็เปิดในแอป (แก้ relative path ให้แล้ว) |
 
-**autocomplete**: พิมพ์ `[[` แล้วจะขึ้นรายการโน้ต — `↑`/`↓` เลือก, `Enter`/`Tab` รับ, `Esc` ปิด
+**autocomplete**: พิมพ์ `[[` แล้วจะขึ้นรายการโน้ตพร้อม path เต็ม — `↑`/`↓` เลือก, `Enter`/`Tab` รับ, `Esc` ปิด
 
 ## คีย์ลัดใน editor
 
@@ -54,7 +54,7 @@ python3 -m http.server 8000
 
 heading, bold/italic/strikethrough, inline code, fenced code block, link, image, list (nesting ตาม indent), blockquote, hr, paragraph, **table** (มี alignment `:--`/`--:`), **task list** `- [ ]` (กดติ๊กใน Preview แล้วแก้ไฟล์จริง), `[[wikilink]]`, **frontmatter** (ซ่อนใน `<details>`)
 
-**ไม่รองรับ** (ตั้งใจให้เล็กไว้): footnote, raw HTML (ถูก escape เป็นข้อความ), `[[note#heading]]` แบบกระโดดไปหัวข้อ (เปิดโน้ตได้แต่ไม่เลื่อน), `![[embed]]`, backlink/graph view
+**ไม่รองรับ** (ตั้งใจให้เล็กไว้): footnote, raw HTML (ถูก escape เป็นข้อความ), `[[note#heading]]` แบบกระโดดไปหัวข้อ (เปิดโน้ตได้แต่ไม่เลื่อน); Wikilink ต้องระบุ path จาก root ของ Vault, `![[embed]]`, backlink/graph view
 
 ## ข้อจำกัด
 
@@ -92,3 +92,11 @@ heading, bold/italic/strikethrough, inline code, fenced code block, link, image,
 | `manifest.json` | PWA manifest (standalone, icons, theme) |
 | `service-worker.js` | offline app shell (network-first สำหรับหน้า, stale-while-revalidate สำหรับ asset) |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | ไอคอนแอป (สร้างด้วยสคริปต์ ไม่มี dependency) |
+
+## ทดสอบ
+
+ใช้ Node.js รันชุดทดสอบ Markdown renderer ได้โดยไม่ต้องติดตั้ง dependency:
+
+```bash
+node tests/markdown.test.js
+```
