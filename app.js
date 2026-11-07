@@ -223,7 +223,6 @@ function sortNodes(nodes) {
 function normalizeWikiPath(value) {
   var path = String(value || '').trim().replace(/\\/g, '/');
   path = path.replace(/^(\.\/)+/, '').replace(/^\/+/, '').replace(/\/+/g, '/');
-  try { path = decodeURIComponent(path); } catch (e) { /* keep the literal path */ }
   return path.replace(TEXT_RE, '');
 }
 
@@ -267,7 +266,10 @@ async function loadVault(handle) {
 async function rescan() {
   state.root.children = await scanDir(state.root.handle, '');
   state.byName = indexNotes(state.root.children, new Map());
-  if (state.file && !findPath(state.root.children, state.file.path)) clearEditor();
+  if (state.file && !findPath(state.root.children, state.file.path)) {
+    if (state.dirty) setStatus('active note is missing; unsaved text retained');
+    else clearEditor();
+  }
   renderTree();
 }
 
@@ -710,7 +712,7 @@ function updateCompletions() {
   candidates.sort(function (a, b) {
     var aStarts = a.base.indexOf(q) === 0 ? 0 : 1;
     var bStarts = b.base.indexOf(q) === 0 ? 0 : 1;
-    return aStarts - bStarts || a.base.localeCompare(b.base);
+    return aStarts - bStarts || a.base.localeCompare(b.base, undefined, { sensitivity: 'base' });
   });
 
   state.completer = { open: true, items: candidates.slice(0, 8), index: 0, start: ctx.start };
