@@ -82,6 +82,7 @@ function clearEditor() {
   state.dirty = false;
   state.revision++;
   els.editor.value = '';
+  els.editor.readOnly = state.readOnly;
   els.editor.disabled = true;
   els.preview.innerHTML = '';
   els.filePath.textContent = 'No file selected';
@@ -238,7 +239,10 @@ function indexNotes(nodes, map) {
 }
 
 async function loadVault(handle) {
+  var wasDisabled = els.editor.disabled;
+  els.editor.disabled = true;
   if (!(await flushSave())) {
+    els.editor.disabled = wasDisabled;
     throw new Error('cannot switch vault: current note was not saved');
   }
   state.readOnly = false;
@@ -304,7 +308,10 @@ function resolveLink(target) {
 /* ---------- fallback: <input webkitdirectory>, read-only ---------- */
 
 async function loadFromFileList(list) {
+  var wasDisabled = els.editor.disabled;
+  els.editor.disabled = true;
   if (!(await flushSave())) {
+    els.editor.disabled = wasDisabled;
     setStatus('cannot switch folder: current note was not saved');
     return;
   }
@@ -466,7 +473,12 @@ function fileRow(node, showDir) {
 
 async function openFile(node) {
   if (state.file && state.file.path === node.path) return;
-  if (!(await flushSave())) return;
+  var wasDisabled = els.editor.disabled;
+  els.editor.disabled = true;
+  if (!(await flushSave())) {
+    els.editor.disabled = wasDisabled;
+    return;
+  }
 
   try {
     var text;
@@ -479,6 +491,7 @@ async function openFile(node) {
     state.file = node;
     state.dirty = false;
     els.editor.value = text;
+    els.editor.readOnly = state.readOnly;
     els.editor.disabled = false;
     els.filePath.textContent = node.path;
     setStatus(state.readOnly ? 'read-only' : '');
@@ -487,6 +500,7 @@ async function openFile(node) {
     hideCompletions();
     setDrawer(false); // on phones the file list is a drawer
   } catch (err) {
+    els.editor.disabled = wasDisabled;
     setStatus('open failed: ' + err.message);
   }
 }
