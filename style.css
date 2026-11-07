@@ -416,3 +416,90 @@ body {
   }
   .comp-item { padding: 9px 10px; }
 }
+
+/* ---------- mobile Markdown toolbar ---------- */
+.markdown-tools-toggle,
+.markdown-tools,
+.markdown-tools-scrim { display: none; }
+
+@media (max-width: 780px) {
+  .panes.preview-on ~ .markdown-tools-toggle { display: none; }
+  .markdown-tools-toggle {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    z-index: 35;
+    right: max(8px, env(safe-area-inset-right));
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 48px;
+    border: 1px solid var(--line);
+    border-right: 0;
+    border-radius: 10px 0 0 10px;
+    background: var(--panel);
+    color: var(--text);
+    font: 22px/1 system-ui, sans-serif;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+  .markdown-tools-toggle:disabled { display: none; }
+  .markdown-tools-scrim:not([hidden]) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(0, 0, 0, 0.42);
+  }
+  .markdown-tools {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    z-index: 40;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(86vw, 310px);
+    padding: calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.38);
+    transform: translateX(105%);
+    transition: transform 0.2s ease, visibility 0.2s;
+    visibility: hidden;
+  }
+  .markdown-tools.open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+  .markdown-tools-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 12px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 12px;
+  }
+  .markdown-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    align-content: start;
+    overflow-y: auto;
+  }
+  .markdown-tools-grid button {
+    min-height: 44px;
+    padding: 8px 5px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #24262b;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .markdown-tools-grid button:active { background: var(--accent-soft); }
+  .markdown-tools-grid code { font: inherit; }
+  .markdown-tools-grid button:focus-visible,
+  .markdown-tools-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+}
