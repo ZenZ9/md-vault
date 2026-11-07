@@ -92,3 +92,11 @@ heading, bold/italic/strikethrough, inline code, fenced code block, link, image,
 | `manifest.json` | PWA manifest (standalone, icons, theme) |
 | `service-worker.js` | offline app shell (network-first สำหรับหน้า, stale-while-revalidate สำหรับ asset) |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | ไอคอนแอป (สร้างด้วยสคริปต์ ไม่มี dependency) |
+
+## ทดสอบ
+
+ใช้ Node.js รันชุดทดสอบ Markdown renderer ได้โดยไม่ต้องติดตั้ง dependency:
+
+```bash
+node tests/markdown.test.js
+```
