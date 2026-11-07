@@ -3,7 +3,7 @@
 โน้ตแอปจิ๋ว: folder tree + ไฟล์ `.md` จริงบนดิสก์ + editor/preview
 ไม่มี build step ไม่มี dependency ไม่ต้องติดตั้งอะไร
 
-**Live:** https://zenn9.github.io/md-vault/ — ใช้ได้เลยบน Chrome (desktop / Android 132+)
+**Live:** https://zenz9.github.io/md-vault/ — ใช้ได้เลยบน Chrome (desktop / Android 132+)
 
 > **เขียนโดย Buffy (Codebuff) 🤖** — ออกแบบและเขียนโค้ดทั้งหมดนี้ในบทสนทนาเดียว
 
@@ -24,7 +24,11 @@ python3 -m http.server 8000
 - **Search files** ใต้ปุ่ม Open — กรองทั้งชื่อไฟล์และ path, `Esc` เพื่อล้าง
 - คลิกไฟล์ใน sidebar เพื่อเปิด → แก้ในช่องซ้าย → autosave หลังหยุดพิมพ์ 0.5 วิ (`Ctrl/Cmd+S` บังคับบันทึกได้)
 - **Preview** → แสดงผล Markdown แบบ side-by-side
-- **+** → สร้างโน้ตใหม่ในโฟลเดอร์เดียวกับไฟล์ที่เปิดอยู่
+- **Target folder** — บรรทัด `Target: /...` ใต้ช่องค้นหา บอกว่าไฟล์/โฟลเดอร์ใหม่จะไปอยู่ที่ไหน: คลิกโฟลเดอร์ในต้นไม้เพื่อเปลี่ยน (โฟลเดอร์ที่เลือกจะhighlight), คลิกที่บรรทัด Target เพื่อกลับไป root
+- **+ Note** → สร้างไฟล์ `.md` ใหม่ใน target folder แล้วเปิดให้เลย
+- **+ Folder** → สร้างโฟลเดอร์ใหม่ใน target folder แล้วตั้งเป็น target ต่อทันที (สร้างซ้อนกันได้เรื่อย ๆ)
+
+> File System Access API ยอมให้สร้างไฟล์/โฟลเดอร์ได้เฉพาะ *ข้างใน* โฟลเดอร์ที่คุณ grant ไว้ครั้งเดียว — เลือกโฟลเดอร์แม่ 1 ครั้ง แล้วสร้างอะไรข้างในได้อิสระโดยไม่ต้องเลือกซ้ำ
 
 ## ลิงก์ระหว่างโน้ต
 
@@ -60,7 +64,7 @@ heading, bold/italic/strikethrough, inline code, fenced code block, link, image,
 
 ## ใช้บนมือถือ (PWA)
 
-**ติดตั้งเป็นแอป**: เปิด https://zenn9.github.io/md-vault/ ด้วย Chrome (Android 132+) → เมนู ⋮ → *Add to Home screen* → เปิดจากไอคอนได้เลย (standalone ไม่มีแถบ address bar) และเปิดได้**แม้ออฟไลน์**หลังเปิดครั้งแรก
+**ติดตั้งเป็นแอป**: เปิด https://zenz9.github.io/md-vault/ ด้วย Chrome (Android 132+) → เมนู ⋮ → *Add to Home screen* → เปิดจากไอคอนได้เลย (standalone ไม่มีแถบ address bar) และเปิดได้**แม้ออฟไลน์**หลังเปิดครั้งแรก
 
 บนจอแคบ (≤780px):
 

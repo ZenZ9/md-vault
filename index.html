@@ -15,8 +15,13 @@
     <aside class="sidebar">
       <div class="sidebar-head">
         <button id="open-btn" class="btn primary" type="button">Open folder</button>
-        <button id="new-btn" class="btn icon" type="button" title="New note" disabled>+</button>
       </div>
+
+      <div class="action-bar">
+        <button id="new-btn" class="btn small" type="button" title="New note in the target folder" disabled>+ Note</button>
+        <button id="new-folder-btn" class="btn small" type="button" title="New folder in the target folder" disabled>+ Folder</button>
+      </div>
+      <div id="target-label" class="target-label" title="New files and folders go here. Click a folder in the tree to change it, or click here to go back to the vault root.">Target: /</div>
 
       <div id="reopen-bar" class="reopen-bar" hidden>
         <span>Last vault:</span>

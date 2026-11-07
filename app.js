@@ -4,6 +4,8 @@ var TEXT_RE = /\.(md|markdown|txt)$/i;
 
 var els = {
   tree: document.getElementById('tree'),
+  newFolderBtn: document.getElementById('new-folder-btn'),
+  targetLabel: document.getElementById('target-label'),
   sidebar: document.querySelector('.sidebar'),
   scrim: document.getElementById('scrim'),
   menuBtn: document.getElementById('menu-btn'),
@@ -31,6 +33,7 @@ var state = {
   readOnly: false,
   collapsed: new Set(),
   query: '',
+  target: '',
   saveTimer: null,
   renderTimer: null,
   savedHandle: null,
@@ -183,16 +186,13 @@ async function scanDir(handle, path) {
     if (entry.name.startsWith('.')) continue;
     if (entry.kind === 'directory') {
       if (entry.name === 'node_modules') continue;
-      var kids = await scanDir(entry, path + entry.name + '/');
-      if (kids.length) {
-        children.push({
-          kind: 'dir',
-          name: entry.name,
-          path: path + entry.name + '/',
-          handle: entry,
-          children: kids,
-        });
-      }
+      children.push({
+        kind: 'dir',
+        name: entry.name,
+        path: path + entry.name + '/',
+        handle: entry,
+        children: await scanDir(entry, path + entry.name + '/'),
+      });
     } else if (TEXT_RE.test(entry.name)) {
       children.push({
         kind: 'file',
@@ -239,6 +239,8 @@ async function loadVault(handle) {
   state.savedHandle = handle;
   els.vaultName.textContent = handle.name;
   els.newBtn.disabled = false;
+  els.newFolderBtn.disabled = false;
+  setTarget('');
   els.reopenBar.hidden = true;
   clearEditor();
   idbSet('root', handle);
@@ -332,6 +334,8 @@ function loadFromFileList(list) {
   state.byName = indexNotes(state.root.children, new Map());
   els.vaultName.textContent = rootName + ' (read-only)';
   els.newBtn.disabled = true;
+  els.newFolderBtn.disabled = true;
+  setTarget('');
   clearEditor();
   setStatus('read-only: this browser cannot write files back');
 }
@@ -347,7 +351,7 @@ function matchesQuery(node) {
 function renderTree() {
   els.tree.textContent = '';
   if (!state.root) return hint('Open a folder of .md files to get started.');
-  if (!state.root.children.length) return hint('No .md files found.');
+  if (!state.root.children.length) return hint('Empty folder — use "+ Note" to create the first note.');
 
   if (state.query) {
     var hits = flatFiles(state.root.children, []).filter(matchesQuery).slice(0, 100);
@@ -383,14 +387,28 @@ function treeItem(node) {
     var open = !state.collapsed.has(node.path);
     var row = document.createElement('button');
     row.type = 'button';
-    row.className = 'row dir' + (open ? ' open' : '');
-    row.innerHTML =
-      '<span class="chev">' + (open ? '▾' : '▸') + '</span>' +
-      '<span class="name">' + esc(node.name) + '</span>';
+    row.className =
+      'row dir' + (open ? ' open' : '') + (state.target === node.path ? ' selected' : '');
+    row.title = node.path || '/';
+
+    var chev = document.createElement('span');
+    chev.className = 'chev';
+    chev.textContent = open ? '▾' : '▸';
+    chev.addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleFolder(node.path);
+    });
+
+    var label = document.createElement('span');
+    label.className = 'name';
+    label.textContent = node.name;
+
+    row.appendChild(chev);
+    row.appendChild(label);
     row.addEventListener('click', function () {
+      // clicking a folder makes it the destination for new notes/folders
       if (state.collapsed.has(node.path)) state.collapsed.delete(node.path);
-      else state.collapsed.add(node.path);
-      renderTree();
+      setTarget(node.path);
     });
     li.appendChild(row);
 
@@ -503,34 +521,72 @@ async function openFolder() {
   }
 }
 
-function currentDir() {
-  if (!state.file) return { handle: state.root && state.root.handle, path: '' };
-  var parts = state.file.path.split('/');
-  parts.pop();
-  var dir = findDir(parts.join('/'));
+function toggleFolder(path) {
+  if (state.collapsed.has(path)) state.collapsed.delete(path);
+  else state.collapsed.add(path);
+  renderTree();
+}
+
+function setTarget(path) {
+  state.target = path || '';
+  els.targetLabel.textContent = 'Target: /' + state.target;
+  renderTree();
+}
+
+function targetDir() {
+  if (!state.root) return null;
+  var dir = state.target ? findDir(state.target) : state.root;
   if (dir && dir.handle) return { handle: dir.handle, path: dir.path };
-  return { handle: state.root && state.root.handle, path: '' };
+  return state.root.handle ? { handle: state.root.handle, path: '' } : null;
+}
+
+function cleanName(name) {
+  return String(name).replace(/[\\/:*?"<>|]/g, '-').replace(/^\.+/, '').trim();
 }
 
 async function newNote() {
   if (!state.root) return setStatus('open a folder first');
   if (state.readOnly || !state.root.handle) return setStatus('read-only: cannot create files');
 
-  var name = (window.prompt('New note name', 'untitled') || '').trim();
-  if (!name) return;
-  if (!TEXT_RE.test(name)) name += '.md';
-  var safe = name.replace(/[\\/:*?"<>|]/g, '-');
+  var dir = targetDir();
+  if (!dir) return setStatus('cannot resolve the target folder');
 
-  var dir = currentDir();
-  if (!dir.handle) return setStatus('cannot resolve current folder');
+  var raw = (window.prompt('New note in /' + dir.path, 'untitled') || '').trim();
+  if (!raw) return;
+  var name = cleanName(TEXT_RE.test(raw) ? raw : raw + '.md');
+  if (!name) return setStatus('invalid name');
 
   try {
-    var handle = await dir.handle.getFileHandle(safe, { create: true });
+    var handle = await dir.handle.getFileHandle(name, { create: true });
     await rescan();
-    await openFile({ kind: 'file', name: safe, path: dir.path + safe, handle: handle });
+    await openFile({ kind: 'file', name: name, path: dir.path + name, handle: handle });
     els.editor.focus();
   } catch (err) {
     setStatus('create failed: ' + err.message);
+  }
+}
+
+async function newFolder() {
+  if (!state.root) return setStatus('open a folder first');
+  if (state.readOnly || !state.root.handle) return setStatus('read-only: cannot create folders');
+
+  var dir = targetDir();
+  if (!dir) return setStatus('cannot resolve the target folder');
+
+  var raw = (window.prompt('New folder in /' + dir.path, 'folder') || '').trim();
+  if (!raw) return;
+  var name = cleanName(raw);
+  if (!name) return setStatus('invalid name');
+
+  try {
+    await dir.handle.getDirectoryHandle(name, { create: true });
+    var path = dir.path + name + '/';
+    state.collapsed.delete(path);
+    await rescan();
+    setTarget(path);
+    setStatus('folder created: /' + path);
+  } catch (err) {
+    setStatus('create folder failed: ' + err.message);
   }
 }
 
@@ -736,6 +792,10 @@ function toggleTask(box) {
 
 els.openBtn.addEventListener('click', openFolder);
 els.newBtn.addEventListener('click', newNote);
+els.newFolderBtn.addEventListener('click', newFolder);
+els.targetLabel.addEventListener('click', function () {
+  setTarget(''); // back to the vault root
+});
 els.reopenBtn.addEventListener('click', reopenLast);
 
 els.menuBtn.addEventListener('click', function () {
