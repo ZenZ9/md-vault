@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MD Vault</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <button id="open-btn" class="btn primary" type="button">Open folder</button>
+        <button id="new-btn" class="btn icon" type="button" title="New note" disabled>+</button>
+      </div>
+
+      <div id="reopen-bar" class="reopen-bar" hidden>
+        <span>Last vault:</span>
+        <button id="reopen-btn" class="link" type="button"></button>
+      </div>
+
+      <div class="search-bar">
+        <input id="search" class="search" type="search" placeholder="Search files…" autocomplete="off" spellcheck="false">
+      </div>
+
+      <nav id="tree" class="tree-wrap" aria-label="File tree"></nav>
+      <div class="sidebar-foot"><span id="vault-name">no folder</span></div>
+    </aside>
+
+    <main class="main">
+      <div class="toolbar">
+        <span id="file-path" class="path">No file selected</span>
+        <span id="status" class="status"></span>
+        <button id="toggle-preview" class="btn" type="button">Preview</button>
+      </div>
+      <div id="panes" class="panes">
+        <textarea id="editor" class="editor" spellcheck="false" placeholder="Open a note from the sidebar…" disabled></textarea>
+        <div id="preview" class="preview"></div>
+      </div>
+      <div id="completions" class="completions" hidden></div>
+    </main>
+  </div>
+
+  <input type="file" id="fallback-input" webkitdirectory multiple hidden>
+
+  <script src="markdown.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
