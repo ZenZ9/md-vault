@@ -710,8 +710,8 @@ function updateCompletions() {
   if (!candidates.length) return hideCompletions();
 
   candidates.sort(function (a, b) {
-    var aStarts = a.base.indexOf(q) === 0 ? 0 : 1;
-    var bStarts = b.base.indexOf(q) === 0 ? 0 : 1;
+    var aStarts = a.base.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+    var bStarts = b.base.toLowerCase().indexOf(q) === 0 ? 0 : 1;
     return aStarts - bStarts || a.base.localeCompare(b.base, undefined, { sensitivity: 'base' });
   });
 
