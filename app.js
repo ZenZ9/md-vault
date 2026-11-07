@@ -840,7 +840,10 @@ function runMarkdownAction(action) {
   if (action === 'quote') return prefixSelectedLines('> ');
   if (action === 'codeblock') {
     var selected = els.editor.value.slice(els.editor.selectionStart, els.editor.selectionEnd);
-    var start = els.editor.selectionStart;\n    var end = els.editor.selectionEnd;\n    var block = '```\\n' + selected + '\\n```';\n    return replaceEditorRange(start, end, block, start + 4, start + 4 + selected.length);
+    var start = els.editor.selectionStart;
+    var end = els.editor.selectionEnd;
+    var block = '```\n' + selected + '\n```';
+    return replaceEditorRange(start, end, block, start + 4, start + 4 + selected.length);
   }
   if (action === 'link' || action === 'image') {
     var label = els.editor.value.slice(els.editor.selectionStart, els.editor.selectionEnd) || 'text';
