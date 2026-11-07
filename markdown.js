@@ -12,7 +12,7 @@
   function safeUrl(value, image) {
     var url = String(value || '').trim();
     if (!url) return false;
-    var compact = url.replace(/[\\u0000-\\u0020\\u007f]/g, '').toLowerCase();
+    var compact = url.replace(/[\x00-\x20\x7f]/g, '').toLowerCase();
     if (/^https?:/.test(compact)) return true;
     if (!image && /^mailto:/.test(compact)) return true;
     if (!image && compact.charAt(0) === '#') return true;
