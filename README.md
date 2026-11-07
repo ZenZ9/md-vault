@@ -58,14 +58,19 @@ heading, bold/italic/strikethrough, inline code, fenced code block, link, image,
 - Firefox / Safari: fallback ไป `<input webkitdirectory>` = อ่านได้แต่บันทึกไม่ได้ (read-only)
 -มือถือ Android ใช้ได้ (Chrome 132+) แต่ต้องเสิร์ฟผ่าน HTTPS — ดูหัวข้อถัดไป
 
-## ใช้บนมือถือ
+## ใช้บนมือถือ (PWA)
 
-File System Access API รองรับบน **Chrome Android 132+**, Samsung Internet 29+ และ Android WebView 132+ (ตั้งแต่ ม.ค. 2025) → แอปนี้ใช้บน Android ได้เลย **โดยไม่ต้องแก้โค้ดแอป** แต่มีเงื่อนไข:
+**ติดตั้งเป็นแอป**: เปิด https://zenn9.github.io/md-vault/ ด้วย Chrome (Android 132+) → เมนู ⋮ → *Add to Home screen* → เปิดจากไอคอนได้เลย (standalone ไม่มีแถบ address bar) และเปิดได้**แม้ออฟไลน์**หลังเปิดครั้งแรก
 
-1. ต้องเปิดผ่าน **HTTPS** (secure context) — `http://192.168.x.x:8000` จากมือถือ **ใช้ไม่ได้** ต้องเป็น https
-2. **iOS / iPadOS ยังไม่รองรับ** — Safari ไม่มี `showDirectoryPicker` (vendor position: oppose) → ได้แค่โหมดอ่าน
+บนจอแคบ (≤780px):
 
-วิธีเสิร์ฟให้มือถือใช้ได้: Cloudflare Pages / GitHub Pages / Netlify (แค่ 4 ไฟล์ static), `tailscale serve`, หรือ Caddy + local cert
+- ปุ่ม **☰** มุมซ้ายบน = เปิด/ปิดรายการไฟล์ (drawer) + แตะพื้นหลังเพื่อปิด, `Esc` ก็ปิด
+- ปุ่ม **Preview** สลับระหว่าง *เขียน* กับ *อ่าน* แบบเต็มจอ (ไม่ใช่ side-by-side)
+- แถวกดใหญ่ขึ้น, editor 16px (กันเบราว์เซอร์ซูมตอนโฟกัส), รองรับ safe-area notch
+
+**ต้องเปิดผ่าน HTTPS** — `http://192.168.x.x:8000` จากมือถือใช้ไม่ได้เพราะไม่ใช่ secure context: ใช้ GitHub Pages / Cloudflare Pages / `tailscale serve` / Caddy + local cert
+
+**iOS / iPadOS ยังใช้ไม่ได้** — Safari ไม่มี `showDirectoryPicker` (vendor position: oppose) → เปิดอ่านได้แต่เลือกโฟลเดอร์ไม่ได้
 
 ## เครดิต
 
@@ -79,4 +84,7 @@ File System Access API รองรับบน **Chrome Android 132+**, Samsung
 | `index.html` | โครงหน้าเว็บ |
 | `style.css` | ธีมมืด |
 | `markdown.js` | markdown → html (เขียนเอง ไม่มี dependency) |
-| `app.js` | tree, อ่าน/เขียนไฟล์, autosave, search, autocomplete, ลิงก์ |
+| `app.js` | tree, อ่าน/เขียนไฟล์, autosave, search, autocomplete, ลิงก์, drawer มือถือ |
+| `manifest.json` | PWA manifest (standalone, icons, theme) |
+| `service-worker.js` | offline app shell (network-first สำหรับหน้า, stale-while-revalidate สำหรับ asset) |
+| `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | ไอคอนแอป (สร้างด้วยสคริปต์ ไม่มี dependency) |

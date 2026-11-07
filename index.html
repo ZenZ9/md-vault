@@ -2,8 +2,12 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>MD Vault</title>
+  <meta name="theme-color" content="#161719">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -27,8 +31,11 @@
       <div class="sidebar-foot"><span id="vault-name">no folder</span></div>
     </aside>
 
+    <div id="scrim" class="scrim" hidden></div>
+
     <main class="main">
       <div class="toolbar">
+        <button id="menu-btn" class="btn icon menu-btn" type="button" aria-label="Toggle file list">☰</button>
         <span id="file-path" class="path">No file selected</span>
         <span id="status" class="status"></span>
         <button id="toggle-preview" class="btn" type="button">Preview</button>

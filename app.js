@@ -4,6 +4,9 @@ var TEXT_RE = /\.(md|markdown|txt)$/i;
 
 var els = {
   tree: document.getElementById('tree'),
+  sidebar: document.querySelector('.sidebar'),
+  scrim: document.getElementById('scrim'),
+  menuBtn: document.getElementById('menu-btn'),
   search: document.getElementById('search'),
   vaultName: document.getElementById('vault-name'),
   openBtn: document.getElementById('open-btn'),
@@ -40,6 +43,11 @@ var esc = globalThis.escapeHtml;
 
 function setStatus(text) {
   els.status.textContent = text || '';
+}
+
+function setDrawer(open) {
+  els.sidebar.classList.toggle('open', !!open);
+  els.scrim.hidden = !open;
 }
 
 function runEditorChange() {
@@ -442,6 +450,7 @@ async function openFile(node) {
     renderPreviewNow();
     renderTree();
     hideCompletions();
+    setDrawer(false); // on phones the file list is a drawer
   } catch (err) {
     setStatus('open failed: ' + err.message);
   }
@@ -729,6 +738,14 @@ els.openBtn.addEventListener('click', openFolder);
 els.newBtn.addEventListener('click', newNote);
 els.reopenBtn.addEventListener('click', reopenLast);
 
+els.menuBtn.addEventListener('click', function () {
+  setDrawer(!els.sidebar.classList.contains('open'));
+});
+
+els.scrim.addEventListener('click', function () {
+  setDrawer(false);
+});
+
 els.search.addEventListener('input', function () {
   state.query = els.search.value.trim();
   renderTree();
@@ -853,6 +870,7 @@ document.addEventListener('keydown', function (e) {
     e.preventDefault();
     save();
   }
+  if (e.key === 'Escape') setDrawer(false);
 });
 
 window.addEventListener('beforeunload', function (e) {
@@ -861,6 +879,14 @@ window.addEventListener('beforeunload', function (e) {
     e.returnValue = '';
   }
 });
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('service-worker.js').catch(function () {
+      /* offline support is a bonus, never fatal */
+    });
+  });
+}
 
 renderTree();
 restoreVault();
