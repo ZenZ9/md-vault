@@ -612,7 +612,10 @@ function updateCompletions() {
   var q = ctx.query.trim().toLowerCase();
   var candidates = [];
   state.byName.forEach(function (node, base) {
-    if (!q || base.indexOf(q) !== -1) candidates.push({ base: base, node: node });
+    if (!q || base.indexOf(q) !== -1) {
+      // keep the real filename casing for what gets inserted
+      candidates.push({ base: base, name: node.name.replace(/\.[^.]+$/, ''), node: node });
+    }
   });
   if (!candidates.length) return hideCompletions();
 
@@ -637,7 +640,7 @@ function renderCompletions() {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'comp-item' + (idx === c.index ? ' active' : '');
-    btn.textContent = item.base;
+    btn.textContent = item.name;
     btn.title = item.node.path;
     btn.addEventListener('mousedown', function (e) {
       e.preventDefault(); // keep the caret in the textarea
@@ -662,7 +665,7 @@ function acceptCompletion(idx) {
 
   var el = els.editor;
   var caret = el.selectionStart;
-  var insert = '[[' + item.base + ']]';
+  var insert = '[[' + item.name + ']]';
   el.value = el.value.slice(0, c.start) + insert + el.value.slice(caret);
   var pos = c.start + insert.length;
   el.setSelectionRange(pos, pos);
@@ -832,13 +835,13 @@ els.previewBtn.addEventListener('click', function () {
 });
 
 els.editor.addEventListener('input', function () {
+  updateCompletions(); // opens or hides the [[ note picker as you type
   if (!state.file) return;
   state.dirty = true;
   setStatus(state.readOnly ? 'read-only' : 'unsaved');
   clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(save, 500);
   scheduleRender();
-  if (state.completer.open) updateCompletions();
 });
 
 els.editor.addEventListener('blur', function () {
@@ -847,7 +850,7 @@ els.editor.addEventListener('blur', function () {
 });
 
 els.editor.addEventListener('click', function () {
-  if (state.completer.open) updateCompletions();
+  updateCompletions();
 });
 
 els.editor.addEventListener('keydown', function (e) {
