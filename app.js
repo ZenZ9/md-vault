@@ -816,7 +816,7 @@ function prefixSelectedLines(prefix) {
   var el = els.editor;
   var start = el.selectionStart;
   var end = el.selectionEnd;
-  var lineStart = el.value.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+  var lineStart = el.value.lastIndexOf('\n', start - 1) + 1;
   var lineEnd = el.value.indexOf('\n', end);
   if (lineEnd === -1) lineEnd = el.value.length;
   else if (end > start && el.value.charAt(end - 1) === '\n') lineEnd = end - 1;
@@ -840,7 +840,7 @@ function runMarkdownAction(action) {
   if (action === 'quote') return prefixSelectedLines('> ');
   if (action === 'codeblock') {
     var selected = els.editor.value.slice(els.editor.selectionStart, els.editor.selectionEnd);
-    return insertText('```\n' + selected + '\n```');
+    var start = els.editor.selectionStart;\n    var end = els.editor.selectionEnd;\n    var block = '```\\n' + selected + '\\n```';\n    return replaceEditorRange(start, end, block, start + 4, start + 4 + selected.length);
   }
   if (action === 'link' || action === 'image') {
     var label = els.editor.value.slice(els.editor.selectionStart, els.editor.selectionEnd) || 'text';
@@ -969,6 +969,13 @@ els.markdownToolsClose.addEventListener('click', function () {
 
 els.markdownToolsScrim.addEventListener('click', function () {
   setMarkdownTools(false);
+});
+
+els.markdownTools.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    setMarkdownTools(false);
+    els.markdownToolsBtn.focus();
+  }
 });
 
 els.markdownTools.addEventListener('pointerdown', function (e) {
