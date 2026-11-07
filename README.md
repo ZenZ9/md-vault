@@ -23,7 +23,6 @@ python3 -m http.server 8000
 - **จำ vault ล่าสุด** — เปิดครั้งหน้าจะมีแถบ `Last vault: <ชื่อ>` ให้กดต่อได้ทันที (เบราว์เซอร์ต้องขอ permission ใหม่ 1 คลิก เป็นข้อจำกัดของ File System Access API เอง)
 - **Search files** ใต้ปุ่ม Open — กรองทั้งชื่อไฟล์และ path, `Esc` เพื่อล้าง
 - คลิกไฟล์ใน sidebar เพื่อเปิด → แก้ในช่องซ้าย → autosave หลังหยุดพิมพ์ 0.5 วิ (`Ctrl/Cmd+S` บังคับบันทึกได้)
-- **Markdown toolbar** → บนมือถือ แตะปุ่มดินสอริมขวาเพื่อเปิดแถบคำสั่ง Markdown แบบเลื่อนทับ editor (Bold, Italic, Strike, Heading, Lists, Quote, Code, Link, Image, Table, HR) เลือกคำสั่งแล้วแถบจะปิดและกลับไปเขียนต่อ
 - **Preview** → แสดงผล Markdown แบบ side-by-side
 - **Target folder** — บรรทัด `Target: /...` ใต้ช่องค้นหา บอกว่าไฟล์/โฟลเดอร์ใหม่จะไปอยู่ที่ไหน: คลิกโฟลเดอร์ในต้นไม้เพื่อเปลี่ยน (โฟลเดอร์ที่เลือกจะhighlight), คลิกที่บรรทัด Target เพื่อกลับไป root
 - **+ Note** → สร้างไฟล์ `.md` ใหม่ใน target folder แล้วเปิดให้เลย
