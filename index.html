@@ -49,6 +49,32 @@
         <textarea id="editor" class="editor" spellcheck="false" placeholder="Open a note from the sidebar…" disabled></textarea>
         <div id="preview" class="preview"></div>
       </div>
+      <button id="markdown-tools-btn" class="markdown-tools-toggle" type="button" aria-label="Open Markdown toolbar" aria-expanded="false" disabled>✎</button>
+      <div id="markdown-tools-scrim" class="markdown-tools-scrim" hidden></div>
+      <aside id="markdown-tools" class="markdown-tools" aria-label="Markdown toolbar" aria-hidden="true">
+        <div class="markdown-tools-head">
+          <strong>Markdown</strong>
+          <button id="markdown-tools-close" class="btn icon" type="button" aria-label="Close Markdown toolbar">×</button>
+        </div>
+        <div class="markdown-tools-grid">
+          <button type="button" data-md-action="bold" title="Bold"><strong>B</strong></button>
+          <button type="button" data-md-action="italic" title="Italic"><em>I</em></button>
+          <button type="button" data-md-action="strike" title="Strikethrough"><s>S</s></button>
+          <button type="button" data-md-action="code" title="Inline code"><code>&lt;/&gt;</code></button>
+          <button type="button" data-md-action="h1" title="Heading 1">H1</button>
+          <button type="button" data-md-action="h2" title="Heading 2">H2</button>
+          <button type="button" data-md-action="h3" title="Heading 3">H3</button>
+          <button type="button" data-md-action="bullet" title="Bullet list">• List</button>
+          <button type="button" data-md-action="number" title="Numbered list">1. List</button>
+          <button type="button" data-md-action="task" title="Task list">☐ Task</button>
+          <button type="button" data-md-action="quote" title="Blockquote">Quote</button>
+          <button type="button" data-md-action="codeblock" title="Code block">Code block</button>
+          <button type="button" data-md-action="link" title="Link">Link</button>
+          <button type="button" data-md-action="image" title="Image">Image</button>
+          <button type="button" data-md-action="table" title="Table">Table</button>
+          <button type="button" data-md-action="hr" title="Horizontal rule">— HR</button>
+        </div>
+      </aside>
       <div id="completions" class="completions" hidden></div>
     </main>
   </div>
