@@ -423,6 +423,7 @@ body {
 .markdown-tools-scrim { display: none; }
 
 @media (max-width: 780px) {
+  .panes.preview-on ~ .markdown-tools-toggle { display: none; }
   .markdown-tools-toggle {
     display: grid;
     place-items: center;
