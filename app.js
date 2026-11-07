@@ -23,10 +23,6 @@ var els = {
   editor: document.getElementById('editor'),
   preview: document.getElementById('preview'),
   completions: document.getElementById('completions'),
-  markdownToolsBtn: document.getElementById('markdown-tools-btn'),
-  markdownTools: document.getElementById('markdown-tools'),
-  markdownToolsScrim: document.getElementById('markdown-tools-scrim'),
-  markdownToolsClose: document.getElementById('markdown-tools-close'),
 };
 
 var state = {
@@ -88,7 +84,6 @@ function clearEditor() {
   els.editor.value = '';
   els.editor.readOnly = state.readOnly;
   els.editor.disabled = true;
-  els.markdownToolsBtn.disabled = true;
   els.preview.innerHTML = '';
   els.filePath.textContent = 'No file selected';
   hideCompletions();
@@ -503,7 +498,6 @@ async function openFile(node) {
     els.editor.value = text;
     els.editor.readOnly = state.readOnly;
     els.editor.disabled = false;
-    els.markdownToolsBtn.disabled = state.readOnly;
     els.filePath.textContent = node.path;
     setStatus(state.readOnly ? 'read-only' : '');
     renderPreviewNow();
@@ -793,70 +787,6 @@ function insertText(text) {
   runEditorChange();
 }
 
-/* ---------- mobile Markdown toolbar ---------- */
-
-function setMarkdownTools(open) {
-  var show = !!open && !els.editor.disabled && !els.editor.readOnly;
-  els.markdownTools.classList.toggle('open', show);
-  els.markdownToolsScrim.hidden = !show;
-  els.markdownToolsBtn.setAttribute('aria-expanded', show ? 'true' : 'false');
-  els.markdownTools.setAttribute('aria-hidden', show ? 'false' : 'true');
-}
-
-function replaceEditorRange(start, end, replacement, selectStart, selectEnd) {
-  var el = els.editor;
-  el.value = el.value.slice(0, start) + replacement + el.value.slice(end);
-  var from = selectStart == null ? start + replacement.length : selectStart;
-  var to = selectEnd == null ? from : selectEnd;
-  el.setSelectionRange(from, to);
-  runEditorChange();
-}
-
-function prefixSelectedLines(prefix) {
-  var el = els.editor;
-  var start = el.selectionStart;
-  var end = el.selectionEnd;
-  var lineStart = el.value.lastIndexOf('\n', start - 1) + 1;
-  var lineEnd = el.value.indexOf('\n', end);
-  if (lineEnd === -1) lineEnd = el.value.length;
-  else if (end > start && el.value.charAt(end - 1) === '\n') lineEnd = end - 1;
-  var block = el.value.slice(lineStart, lineEnd);
-  var changed = block.split('\n').map(function (line) { return prefix + line; }).join('\n');
-  replaceEditorRange(lineStart, lineEnd, changed, lineStart, lineStart + changed.length);
-}
-
-function runMarkdownAction(action) {
-  if (els.editor.disabled || els.editor.readOnly) return;
-  if (action === 'bold') return wrapSelection('**');
-  if (action === 'italic') return wrapSelection('*');
-  if (action === 'strike') return wrapSelection('~~');
-  if (action === 'code') return wrapSelection(String.fromCharCode(96));
-  if (action === 'h1') return prefixSelectedLines('# ');
-  if (action === 'h2') return prefixSelectedLines('## ');
-  if (action === 'h3') return prefixSelectedLines('### ');
-  if (action === 'bullet') return prefixSelectedLines('- ');
-  if (action === 'number') return prefixSelectedLines('1. ');
-  if (action === 'task') return prefixSelectedLines('- [ ] ');
-  if (action === 'quote') return prefixSelectedLines('> ');
-  if (action === 'codeblock') {
-    var selected = els.editor.value.slice(els.editor.selectionStart, els.editor.selectionEnd);
-    var start = els.editor.selectionStart;
-    var end = els.editor.selectionEnd;
-    var block = '```\n' + selected + '\n```';
-    return replaceEditorRange(start, end, block, start + 4, start + 4 + selected.length);
-  }
-  if (action === 'link' || action === 'image') {
-    var label = els.editor.value.slice(els.editor.selectionStart, els.editor.selectionEnd) || 'text';
-    var syntax = action === 'image' ? '![' + label + '](url)' : '[' + label + '](url)';
-    var start = els.editor.selectionStart;
-    var end = els.editor.selectionEnd;
-    var urlStart = syntax.indexOf('url') + start;
-    replaceEditorRange(start, end, syntax, urlStart, urlStart + 3);
-    return;
-  }
-  if (action === 'table') return insertText('| Column 1 | Column 2 |\n| --- | --- |\n| Cell | Cell |');
-  if (action === 'hr') return insertText('\n---\n');
-}
 function continueList() {
   var el = els.editor;
   var pos = el.selectionStart;
@@ -960,38 +890,6 @@ els.targetLabel.addEventListener('click', function () {
   setTarget(''); // back to the vault root
 });
 els.reopenBtn.addEventListener('click', reopenLast);
-
-els.markdownToolsBtn.addEventListener('click', function () {
-  setMarkdownTools(!els.markdownTools.classList.contains('open'));
-});
-
-els.markdownToolsClose.addEventListener('click', function () {
-  setMarkdownTools(false);
-  els.markdownToolsBtn.focus();
-});
-
-els.markdownToolsScrim.addEventListener('click', function () {
-  setMarkdownTools(false);
-});
-
-els.markdownTools.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') {
-    setMarkdownTools(false);
-    els.markdownToolsBtn.focus();
-  }
-});
-
-els.markdownTools.addEventListener('pointerdown', function (e) {
-  if (e.target.closest('[data-md-action]')) e.preventDefault();
-});
-
-els.markdownTools.addEventListener('click', function (e) {
-  var button = e.target.closest('[data-md-action]');
-  if (!button) return;
-  runMarkdownAction(button.getAttribute('data-md-action'));
-  setMarkdownTools(false);
-  els.editor.focus();
-});
 
 els.menuBtn.addEventListener('click', function () {
   setDrawer(!els.sidebar.classList.contains('open'));
