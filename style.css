@@ -347,13 +347,19 @@ body {
 }
 
 /* ---------- row menu (rename / delete) ---------- */
+.row-wrap { display: flex; align-items: center; }
+.row-wrap > .row { flex: 1 1 auto; min-width: 0; }
+
 .row-actions {
   flex: 0 0 auto;
-  margin-left: auto;
   padding: 0 5px;
+  border: 0;
   border-radius: 4px;
+  background: none;
   color: #6f7480;
+  font: inherit;
   line-height: 1.2;
+  cursor: pointer;
   user-select: none;
 }
 .row-actions:hover { background: #2c2f35; color: var(--text); }
@@ -448,7 +454,7 @@ body {
   }
 
   .row { padding: 9px 8px; }
-  .row-actions { padding: 0 8px; margin: -6px -4px -6px 0; font-size: 16px; }
+  .row-actions { padding: 0 8px; font-size: 16px; }
   .row-menu-item { padding: 10px 12px; font-size: 14px; }
   /* bigger tap target for the expand/collapse arrow */
   .row .chev {

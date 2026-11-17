@@ -447,14 +447,18 @@ function treeItem(node) {
 
     row.appendChild(chev);
     row.appendChild(label);
-    row.appendChild(rowActions(node));
     attachMenuKey(node, row);
     row.addEventListener('click', function () {
       // clicking a folder makes it the destination for new notes/folders
       if (state.collapsed.has(node.path)) state.collapsed.delete(node.path);
       setTarget(node.path);
     });
-    li.appendChild(row);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'row-wrap';
+    wrap.appendChild(row);
+    wrap.appendChild(rowActions(node));
+    li.appendChild(wrap);
 
     if (open) {
       var sub = document.createElement('ul');
@@ -483,12 +487,17 @@ function fileRow(node, showDir) {
     (showDir && node.path.indexOf('/') !== -1
       ? '<span class="dirpath">' + esc(node.path.replace(/\/[^/]*$/, '')) + '</span>'
       : '');
-  row.appendChild(rowActions(node));
   attachMenuKey(node, row);
   row.addEventListener('click', function () {
     openFile(node);
   });
-  return row;
+
+  // the action button is a sibling, not a child: interactive elements must not nest
+  var wrap = document.createElement('div');
+  wrap.className = 'row-wrap';
+  wrap.appendChild(row);
+  wrap.appendChild(rowActions(node));
+  return wrap;
 }
 
 /* ---------- file io ---------- */
@@ -703,14 +712,15 @@ function canWrite() {
 }
 
 function rowActions(node) {
-  var btn = document.createElement('span');
+  var btn = document.createElement('button');
+  btn.type = 'button';
   btn.className = 'row-actions';
   btn.textContent = '⋯';
   btn.title = 'Rename or delete';
   btn.setAttribute('aria-label', 'Rename or delete /' + node.path);
+  btn.setAttribute('aria-haspopup', 'menu');
   btn.addEventListener('click', function (e) {
-    e.preventDefault();
-    e.stopPropagation(); // don't open the note / change the target as well
+    e.stopPropagation(); // keep the document handler from closing it again
     openRowMenu(node, btn);
   });
   return btn;
