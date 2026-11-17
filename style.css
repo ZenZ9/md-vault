@@ -454,7 +454,16 @@ body {
   }
 
   .row { padding: 9px 8px; }
-  .row-actions { padding: 0 8px; font-size: 16px; }
+  /* keep the ⋯ reachable with a thumb, not just a 19px line box */
+  .row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0 6px;
+    font-size: 17px;
+  }
   .row-menu-item { padding: 10px 12px; font-size: 14px; }
   /* bigger tap target for the expand/collapse arrow */
   .row .chev {

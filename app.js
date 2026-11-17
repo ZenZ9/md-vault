@@ -1285,3 +1285,9 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 
 renderTree();
 restoreVault();
+
+// on phones the file list is an off-canvas drawer, so start with it open:
+// otherwise "Open folder" is off-screen and there is nothing to tap for it
+if (!state.root && window.matchMedia && window.matchMedia('(max-width: 780px)').matches) {
+  setDrawer(true);
+}
