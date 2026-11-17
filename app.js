@@ -23,6 +23,7 @@ var els = {
   editor: document.getElementById('editor'),
   preview: document.getElementById('preview'),
   completions: document.getElementById('completions'),
+  rowMenu: document.getElementById('row-menu'),
 };
 
 var state = {
@@ -300,6 +301,17 @@ function findDir(path) {
   return node && node.kind === 'dir' ? node : null;
 }
 
+function parentDir(path) {
+  var trimmed = String(path).replace(/\/$/, '');
+  var idx = trimmed.lastIndexOf('/');
+  return findDir(idx === -1 ? '' : trimmed.slice(0, idx + 1));
+}
+
+function remapPath(path, oldPrefix, newPrefix) {
+  if (path === oldPrefix) return newPrefix;
+  return path.indexOf(oldPrefix) === 0 ? newPrefix + path.slice(oldPrefix.length) : path;
+}
+
 function resolveLink(target) {
   var name = String(target || '').replace(/#.*$/, '').trim();
   if (!name) return null;
@@ -378,6 +390,7 @@ function matchesQuery(node) {
 }
 
 function renderTree() {
+  closeRowMenu();
   els.tree.textContent = '';
   if (!state.root) return hint('Open a folder of .md files to get started.');
   if (!state.root.children.length) return hint('Empty folder — use "+ Note" to create the first note.');
@@ -434,6 +447,8 @@ function treeItem(node) {
 
     row.appendChild(chev);
     row.appendChild(label);
+    row.appendChild(rowActions(node));
+    attachMenuKey(node, row);
     row.addEventListener('click', function () {
       // clicking a folder makes it the destination for new notes/folders
       if (state.collapsed.has(node.path)) state.collapsed.delete(node.path);
@@ -468,6 +483,8 @@ function fileRow(node, showDir) {
     (showDir && node.path.indexOf('/') !== -1
       ? '<span class="dirpath">' + esc(node.path.replace(/\/[^/]*$/, '')) + '</span>'
       : '');
+  row.appendChild(rowActions(node));
+  attachMenuKey(node, row);
   row.addEventListener('click', function () {
     openFile(node);
   });
@@ -676,6 +693,209 @@ async function newFolder() {
     setStatus('folder created: /' + path);
   } catch (err) {
     setStatus('create folder failed: ' + err.message);
+  }
+}
+
+/* ---------- row menu: rename / delete ---------- */
+
+function canWrite() {
+  return !state.readOnly && !!state.root && !!state.root.handle;
+}
+
+function rowActions(node) {
+  var btn = document.createElement('span');
+  btn.className = 'row-actions';
+  btn.textContent = '⋯';
+  btn.title = 'Rename or delete';
+  btn.setAttribute('aria-label', 'Rename or delete /' + node.path);
+  btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation(); // don't open the note / change the target as well
+    openRowMenu(node, btn);
+  });
+  return btn;
+}
+
+function attachMenuKey(node, row) {
+  row.addEventListener('keydown', function (e) {
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+      e.preventDefault();
+      openRowMenu(node, row);
+    }
+  });
+}
+
+function openRowMenu(node, anchor) {
+  els.rowMenu.textContent = '';
+
+  var title = document.createElement('div');
+  title.className = 'row-menu-title';
+  title.textContent = '/' + node.path;
+  els.rowMenu.appendChild(title);
+
+  [
+    { label: 'Rename', run: renameNode },
+    { label: 'Delete', run: deleteNode, danger: true },
+  ].forEach(function (item) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'row-menu-item' + (item.danger ? ' danger' : '');
+    btn.textContent = item.label;
+    btn.disabled = !canWrite() || !node.handle;
+    btn.addEventListener('click', function () {
+      closeRowMenu();
+      item.run(node);
+    });
+    els.rowMenu.appendChild(btn);
+  });
+
+  els.rowMenu.hidden = false;
+
+  var rect = anchor.getBoundingClientRect();
+  var w = els.rowMenu.offsetWidth;
+  var h = els.rowMenu.offsetHeight;
+  var left = Math.max(8, Math.min(rect.right - w, window.innerWidth - w - 8));
+  var top = rect.bottom + 4 + h > window.innerHeight ? Math.max(8, rect.top - h - 4) : rect.bottom + 4;
+  els.rowMenu.style.left = left + 'px';
+  els.rowMenu.style.top = top + 'px';
+}
+
+function closeRowMenu() {
+  if (els.rowMenu.hidden) return;
+  els.rowMenu.hidden = true;
+  els.rowMenu.textContent = '';
+}
+
+function isRowMenuOpen() {
+  return !els.rowMenu.hidden;
+}
+
+async function entryExists(dirHandle, name, kind) {
+  try {
+    if (kind === 'dir') await dirHandle.getDirectoryHandle(name);
+    else await dirHandle.getFileHandle(name);
+    return true;
+  } catch (err) {
+    if (err && err.name !== 'NotFoundError') throw err;
+    return false;
+  }
+}
+
+async function copyTreeInto(destHandle, srcHandle) {
+  for await (var entry of srcHandle.values()) {
+    if (entry.kind === 'directory') {
+      var sub = await destHandle.getDirectoryHandle(entry.name, { create: true });
+      await copyTreeInto(sub, entry);
+    } else {
+      var copy = await destHandle.getFileHandle(entry.name, { create: true });
+      var writable = await copy.createWritable();
+      await writable.write(await entry.getFile());
+      await writable.close();
+    }
+  }
+}
+
+async function renameNode(node) {
+  if (!canWrite() || !node.handle) return setStatus('read-only: cannot rename');
+
+  var isDir = node.kind === 'dir';
+  var kind = isDir ? 'folder' : 'note';
+  var base = isDir ? node.name : node.name.replace(/\.[^.]+$/, '');
+  var raw = (window.prompt('Rename ' + kind + ' /' + node.path, base) || '').trim();
+  if (!raw) return;
+
+  var name = cleanName(raw);
+  if (!name) return setStatus('invalid name');
+  if (!isDir && !TEXT_RE.test(name)) name += (/\.[^.]+$/.exec(node.name) || ['.md'])[0];
+  if (name === node.name) return;
+
+  var parent = parentDir(node.path);
+  if (!parent || !parent.handle) return setStatus('cannot find the parent folder');
+
+  var oldPath = node.path;
+  var newPath = parent.path + name + (isDir ? '/' : '');
+  var openPath = state.file ? remapPath(state.file.path, oldPath, newPath) : '';
+  var wasOpen = !!state.file;
+  var target = state.target ? remapPath(state.target, oldPath, newPath) : '';
+
+  try {
+    if (!(await flushSave())) return;
+    if (await entryExists(parent.handle, name, isDir ? 'dir' : 'file')) {
+      return setStatus('already exists: /' + parent.path + name);
+    }
+    setStatus('renaming…');
+
+    if (isDir) {
+      // browser still has no move() for directories: copy the tree, drop the original
+      var made = await parent.handle.getDirectoryHandle(name, { create: true });
+      await copyTreeInto(made, node.handle);
+      await parent.handle.removeEntry(node.name, { recursive: true });
+    } else if (typeof node.handle.move === 'function') {
+      await node.handle.move(name);
+    } else {
+      var text = await (await node.handle.getFile()).text();
+      var copy = await parent.handle.getFileHandle(name, { create: true });
+      var writable = await copy.createWritable();
+      await writable.write(text);
+      await writable.close();
+      await parent.handle.removeEntry(node.name);
+    }
+
+    state.collapsed = new Set(
+      Array.from(state.collapsed).map(function (path) {
+        return remapPath(path, oldPath, newPath);
+      })
+    );
+    if (wasOpen) state.file = null; // keep the editor text; rescan() must not wipe it
+    await rescan();
+
+    if (wasOpen) {
+      var reopened = findFileLoose(openPath);
+      if (reopened) {
+        state.file = reopened;
+        els.filePath.textContent = reopened.path;
+      } else {
+        clearEditor();
+      }
+    }
+
+    state.target = target;
+    els.targetLabel.textContent = 'Target: /' + state.target;
+    renderTree();
+    setStatus('renamed to /' + newPath);
+  } catch (err) {
+    setStatus('rename failed: ' + err.message);
+  }
+}
+
+async function deleteNode(node) {
+  if (!canWrite() || !node.handle) return setStatus('read-only: cannot delete');
+
+  var parent = parentDir(node.path);
+  if (!parent || !parent.handle) return setStatus('cannot find the parent folder');
+
+  var kind = node.kind === 'dir' ? 'folder' : 'note';
+  var ok = window.confirm(
+    'Delete ' + kind + ' /' + node.path + '?\n\nIt is removed from disk, not moved to the trash.'
+  );
+  if (!ok) return;
+
+  try {
+    setStatus('deleting…');
+    await parent.handle.removeEntry(node.name, { recursive: node.kind === 'dir' });
+
+    if (state.file && (state.file.path === node.path || state.file.path.indexOf(node.path) === 0)) {
+      clearEditor();
+    }
+    if (state.target === node.path || state.target.indexOf(node.path) === 0) {
+      state.target = '';
+      els.targetLabel.textContent = 'Target: /';
+    }
+
+    await rescan();
+    setStatus('deleted /' + node.path);
+  } catch (err) {
+    setStatus('delete failed: ' + err.message);
   }
 }
 
@@ -1024,8 +1244,19 @@ document.addEventListener('keydown', function (e) {
     e.preventDefault();
     save();
   }
-  if (e.key === 'Escape') setDrawer(false);
+  if (e.key === 'Escape') {
+    setDrawer(false);
+    closeRowMenu();
+  }
 });
+
+// a click anywhere outside the rename/delete menu dismisses it
+document.addEventListener('click', function (e) {
+  if (isRowMenuOpen() && !els.rowMenu.contains(e.target)) closeRowMenu();
+});
+
+window.addEventListener('resize', closeRowMenu);
+els.tree.addEventListener('scroll', closeRowMenu);
 
 window.addEventListener('beforeunload', function (e) {
   if (state.dirty) {

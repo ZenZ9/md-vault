@@ -27,6 +27,10 @@ python3 -m http.server 8000
 - **Target folder** — บรรทัด `Target: /...` ใต้ช่องค้นหา บอกว่าไฟล์/โฟลเดอร์ใหม่จะไปอยู่ที่ไหน: คลิกโฟลเดอร์ในต้นไม้เพื่อเปลี่ยน (โฟลเดอร์ที่เลือกจะhighlight), คลิกที่บรรทัด Target เพื่อกลับไป root
 - **+ Note** → สร้างไฟล์ `.md` ใหม่ใน target folder แล้วเปิดให้เลย
 - **+ Folder** → สร้างโฟลเดอร์ใหม่ใน target folder แล้วตั้งเป็น target ต่อทันที (สร้างซ้อนกันได้เรื่อย ๆ)
+- **⋯ ท้ายแถวไฟล์/โฟลเดอร์** → เปิดเมนู *Rename* / *Delete* (หรือกด `Shift+F10` / ปุ่ม Context Menu ตอนโฟกัสแถวนั้น)
+  - *Rename* เปลี่ยนชื่อไฟล์/โฟลเดอร์ — ไฟล์ใช้ `move()` ของเบราว์เซอร์, โฟลเดอร์ทำด้วย copy ทั้งต้นไม้แล้วลบของเดิม (ยังไม่มี move สำหรับโฟลเดอร์) จึงใช้เวลาสักครู่ถ้าไฟล์เยอะ
+  - *Delete* **ลบออกจากดิสก์ทันที ไม่ลงถังขยะ** — มี `confirm` ถามก่อนเสมอ, ลบโฟลเดอร์ลบทั้งต้นไม้
+  - ทั้งสองอย่างจะไม่ทำอะไรถ้าชื่อใหม่ชนกับของที่มีอยู่แล้ว (ขึ้น `already exists`)
 
 > File System Access API ยอมให้สร้างไฟล์/โฟลเดอร์ได้เฉพาะ *ข้างใน* โฟลเดอร์ที่คุณ grant ไว้ครั้งเดียว — เลือกโฟลเดอร์แม่ 1 ครั้ง แล้วสร้างอะไรข้างในได้อิสระโดยไม่ต้องเลือกซ้ำ
 
@@ -60,7 +64,7 @@ heading, bold/italic/strikethrough, inline code, fenced code block, link, image,
 
 - เขียนไฟล์ได้เฉพาะ Chromium (Chrome / Edge / Brave) ผ่าน File System Access API
 - Firefox / Safari: fallback ไป `<input webkitdirectory>` = อ่านได้แต่บันทึกไม่ได้ (read-only)
--มือถือ Android ใช้ได้ (Chrome 132+) แต่ต้องเสิร์ฟผ่าน HTTPS — ดูหัวข้อถัดไป
+- มือถือ Android ใช้ได้ (Chrome 132+) แต่ต้องเสิร์ฟผ่าน HTTPS — ดูหัวข้อถัดไป
 
 ## ใช้บนมือถือ (PWA)
 
@@ -75,6 +79,17 @@ heading, bold/italic/strikethrough, inline code, fenced code block, link, image,
 **ต้องเปิดผ่าน HTTPS** — `http://192.168.x.x:8000` จากมือถือใช้ไม่ได้เพราะไม่ใช่ secure context: ใช้ GitHub Pages / Cloudflare Pages / `tailscale serve` / Caddy + local cert
 
 **iOS / iPadOS ยังใช้ไม่ได้** — Safari ไม่มี `showDirectoryPicker` (vendor position: oppose) → เปิดอ่านได้แต่เลือกโฟลเดอร์ไม่ได้
+
+## ทดสอบ
+
+`markdown.js` มี test ที่ไม่ต้องติดตั้งอะไร (node 18+):
+
+```bash
+cd md-vault
+node --test
+```
+
+ครอบคลุม heading, emphasis/code, การ escape raw HTML, code fence, table alignment, task list (รวม `data-line` ที่ใช้ติ๊กใน Preview), wikilink, frontmatter, list nesting, blockquote/hr และ input ว่าง
 
 ## เครดิต
 
@@ -92,6 +107,7 @@ heading, bold/italic/strikethrough, inline code, fenced code block, link, image,
 | `manifest.json` | PWA manifest (standalone, icons, theme) |
 | `service-worker.js` | offline app shell (network-first สำหรับหน้า, stale-while-revalidate สำหรับ asset) |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | ไอคอนแอป (สร้างด้วยสคริปต์ ไม่มี dependency) |
+| `tests/markdown.test.js` | test ของ markdown renderer (ไม่ต้องติดตั้ง dependency) |
 
 ## ทดสอบ
 
@@ -100,3 +116,5 @@ heading, bold/italic/strikethrough, inline code, fenced code block, link, image,
 ```bash
 node tests/markdown.test.js
 ```
+
+ครอบคลุมการ sanitize URL ของ link/image, wikilink, heading, emphasis/code, การ escape raw HTML, code fence, table alignment, task list (รวม `data-line` ที่ใช้ติ๊กใน Preview), frontmatter, list nesting, blockquote/hr และ input ว่าง

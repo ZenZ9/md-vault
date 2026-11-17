@@ -1,7 +1,7 @@
 /* MD Vault service worker: caches the app shell so the editor opens offline.
    Navigations are network-first (new deploys show up), assets are
    stale-while-revalidate. Bump CACHE when you change the shell list. */
-var CACHE = 'md-vault-v1';
+var CACHE = 'md-vault-v2';
 var SHELL = [
   './',
   './index.html',
