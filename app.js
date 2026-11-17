@@ -735,8 +735,17 @@ function attachMenuKey(node, row) {
   });
 }
 
+var menuAnchor = null;
+
+function menuItems() {
+  return Array.prototype.slice.call(
+    els.rowMenu.querySelectorAll('.row-menu-item:not(:disabled)')
+  );
+}
+
 function openRowMenu(node, anchor) {
   els.rowMenu.textContent = '';
+  menuAnchor = anchor;
 
   var title = document.createElement('div');
   title.className = 'row-menu-title';
@@ -751,9 +760,11 @@ function openRowMenu(node, anchor) {
     btn.type = 'button';
     btn.className = 'row-menu-item' + (item.danger ? ' danger' : '');
     btn.textContent = item.label;
+    btn.setAttribute('role', 'menuitem');
+    btn.tabIndex = -1;
     btn.disabled = !canWrite() || !node.handle;
     btn.addEventListener('click', function () {
-      closeRowMenu();
+      closeRowMenu(true);
       item.run(node);
     });
     els.rowMenu.appendChild(btn);
@@ -768,12 +779,45 @@ function openRowMenu(node, anchor) {
   var top = rect.bottom + 4 + h > window.innerHeight ? Math.max(8, rect.top - h - 4) : rect.bottom + 4;
   els.rowMenu.style.left = left + 'px';
   els.rowMenu.style.top = top + 'px';
+
+  // keyboard users start on the first action, so Enter/Space works right away
+  var first = menuItems()[0];
+  (first || els.rowMenu).focus();
 }
 
-function closeRowMenu() {
+// Arrow keys walk the menu; Escape closes it and puts focus back where it came from.
+els.rowMenu.addEventListener('keydown', function (e) {
+  var items = menuItems();
+  var i = items.indexOf(document.activeElement);
+
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!items.length) return;
+    var step = e.key === 'ArrowDown' ? 1 : -1;
+    var next = i === -1 ? (step > 0 ? 0 : items.length - 1) : (i + step + items.length) % items.length;
+    items[next].focus();
+  } else if (e.key === 'Home' || e.key === 'End') {
+    e.preventDefault();
+    if (!items.length) return;
+    items[e.key === 'Home' ? 0 : items.length - 1].focus();
+  } else if (e.key === 'Escape') {
+    // handle it here so the document handler does not also close the mobile drawer
+    e.preventDefault();
+    e.stopPropagation();
+    closeRowMenu(true);
+  } else if (e.key === 'Tab') {
+    // let Tab move on from the row the menu belongs to
+    closeRowMenu(true);
+  }
+});
+
+function closeRowMenu(returnFocus) {
   if (els.rowMenu.hidden) return;
+  var anchor = menuAnchor;
   els.rowMenu.hidden = true;
   els.rowMenu.textContent = '';
+  menuAnchor = null;
+  if (returnFocus && anchor && document.contains(anchor)) anchor.focus();
 }
 
 function isRowMenuOpen() {
